@@ -100,81 +100,83 @@ void Pictrue::ComputeAccuracy(Mat srcImg)
 	double bigL = 0.0;   //长
 	double smallL = 0.0;   //宽
 
+
 	// 遍历所有顶层轮廓
 	for (auto index = 0; index < contours.size(); index++)
-	{
-		area = contourArea(contours[index]);
-		length = arcLength(contours[index], true);
+		{
+			area = contourArea(contours[index]);
+			length = arcLength(contours[index], true);
 
-		// 最小外接矩形计算
-		RotatedRect rect = minAreaRect(contours[index]);
-		Point2f P[4];
-		rect.points(P);
-		Size s = rect.size;
-		l1 = s.width;
-		l2 = s.height;
-		if (l1 > l2)
-		{
-			bigL = l1 * resolution;
-			smallL = l2 * resolution;
-		}
-		else
-		{
-			bigL = l2 * resolution;
-			smallL = l1 * resolution;
-		}
-		minRadius = smallL;  // 得到最小粒径
-
-		//粒径大于阈值才进行处理
-		//if (minRadius >= diaThreshold && length < 6000)
-		if (minRadius >= diaThreshold)
-		{
-			//int ratio_1 = bigL / smallL;
-			//int ratio_2 = (int)length * (int)length / (int)area;  //利用周长平方与面积之比来滤除条状纹理
-			if (length * resolution > perimeterThreshold)
+			// 最小外接矩形计算
+			RotatedRect rect = minAreaRect(contours[index]);
+			Point2f P[4];
+			rect.points(P);
+			Size s = rect.size;
+			l1 = s.width;
+			l2 = s.height;
+			if (l1 > l2)
 			{
-				cv::drawContours(dstImg2, contours, index, color_white, CV_FILLED, 8, hierarchy);
-				areaStrip -= area;
-			}
-			else if (bigL / smallL > radio)
-			{
-				cv::drawContours(dstImg2, contours, index, color_green, CV_FILLED, 8, hierarchy);
-				areaStrip -= area;
+				bigL = l1 * resolution;
+				smallL = l2 * resolution;
 			}
 			else
 			{
-				double maxLength = 0.0;
-				double curLenth = 0.0;
-				// 每个颗粒内循环精确计算最大粒径
-				for (auto i = 0; i < contours[index].size(); i++)
+				bigL = l2 * resolution;
+				smallL = l1 * resolution;
+			}
+			minRadius = smallL;  // 得到最小粒径
+
+			//粒径大于阈值才进行处理
+			//if (minRadius >= diaThreshold && length < 6000)
+			if (minRadius >= diaThreshold)
+			{
+				//int ratio_1 = bigL / smallL;
+				//int ratio_2 = (int)length * (int)length / (int)area;  //利用周长平方与面积之比来滤除条状纹理
+				if (length * resolution > perimeterThreshold)
 				{
-					for (auto j = 0; j < contours[index].size(); j++)
-					{
-						curLenth = sqrt((contours[index][i].x - contours[index][j].x)*(contours[index][i].x - contours[index][j].x) +
-							(contours[index][i].y - contours[index][j].y)*(contours[index][i].y - contours[index][j].y));
-						if (curLenth > maxLength)
-							maxLength = curLenth;
-					}
+					cv::drawContours(dstImg2, contours, index, color_white, CV_FILLED, 8, hierarchy);
+					areaStrip -= area;
 				}
-				maxRadius = maxLength * resolution;// 得到最大粒径
+				else if (bigL / smallL > radio)
+				{
+					cv::drawContours(dstImg2, contours, index, color_green, CV_FILLED, 8, hierarchy);
+					areaStrip -= area;
+				}
+				else
+				{
+					double maxLength = 0.0;
+					double curLenth = 0.0;
+					// 每个颗粒内循环精确计算最大粒径
+					for (auto i = 0; i < contours[index].size(); i++)
+					{
+						for (auto j = 0; j < contours[index].size(); j++)
+						{
+							curLenth = sqrt((contours[index][i].x - contours[index][j].x)*(contours[index][i].x - contours[index][j].x) +
+								(contours[index][i].y - contours[index][j].y)*(contours[index][i].y - contours[index][j].y));
+							if (curLenth > maxLength)
+								maxLength = curLenth;
+						}
+					}
+					maxRadius = maxLength * resolution;// 得到最大粒径
 
-				valueCount++;
-				areaSum += area;
-				lengthSum += length;
-				radiusMaxSum += maxRadius;
-				radiusMinSum += minRadius;
+					valueCount++;
+					areaSum += area;
+					lengthSum += length;
+					radiusMaxSum += maxRadius;
+					radiusMinSum += minRadius;
 
-				area = area * resolution*resolution;
-				length = length * resolution;
+					area = area * resolution*resolution;
+					length = length * resolution;
 
-				vecArea.push_back(area);           // 面积
-				vecLength.push_back(length);       // 周长
-				vecMaxDia.push_back(maxRadius);    // 每个最大粒径
-				vecMinDia.push_back(minRadius);    // 每个最小粒径
-				cv::drawContours(dstImg2, contours, index, color_red, CV_FILLED, 8, hierarchy);
+					vecArea.push_back(area);           // 面积
+					vecLength.push_back(length);       // 周长
+					vecMaxDia.push_back(maxRadius);    // 每个最大粒径
+					vecMinDia.push_back(minRadius);    // 每个最小粒径
+					cv::drawContours(dstImg2, contours, index, color_red, CV_FILLED, 8, hierarchy);
+				}
 			}
 		}
-	}
+
 
 	//画刻度线，1mm标小刻度，5mm标大刻度
 	for (int m = 1; double(1000 * m / resolution) < dstImg2.cols; m++)
@@ -198,72 +200,75 @@ void Pictrue::ComputeAccuracy(Mat srcImg)
 	cv::imwrite(PicSavePath_cv, dstImg2);
 
 	// ******************【平均】 【面积率】 【区域整体面积】
-	meanMaxDia = radiusMaxSum / valueCount;                                 // 平均最大粒径
-	meanMinDia = radiusMinSum / valueCount;                                 // 平均最小粒径
-	meanArea = areaSum / valueCount * resolution * resolution;              // 平均面积
-	meanLength = lengthSum / valueCount * resolution;                       // 平均周长
-	areaStrip += srcImg.rows*srcImg.cols;                                   // 一小条的像素面积
-	ratioArea = areaSum / areaStrip * 100;                                  // 面积率
-	areaStrip = areaStrip * resolution*resolution;             // 一小条的面积
-
-	// ******************【总计】
-	sumBigDia = radiusMaxSum;
-	sumSmallDia = radiusMinSum;
-	sumLength = lengthSum * resolution;
-	sumArea = areaSum * resolution*resolution;
-
-	// *****************【最大】 【最小】 【标准差】
-	for (auto i = 0; i < vecArea.size(); i++)
+	if (valueCount != 0)
 	{
-		// 循环第一次初始化
-		if (i == 0)
+		meanMaxDia = radiusMaxSum / valueCount;                                 // 平均最大粒径
+		meanMinDia = radiusMinSum / valueCount;                                 // 平均最小粒径
+		meanArea = areaSum / valueCount * resolution * resolution;              // 平均面积
+		meanLength = lengthSum / valueCount * resolution;                       // 平均周长
+		areaStrip += srcImg.rows*srcImg.cols;                                   // 一小条的像素面积
+		ratioArea = areaSum / areaStrip * 100;                                  // 面积率
+		areaStrip = areaStrip * resolution*resolution;             // 一小条的面积
+
+		// ******************【总计】
+		sumBigDia = radiusMaxSum;
+		sumSmallDia = radiusMinSum;
+		sumLength = lengthSum * resolution;
+		sumArea = areaSum * resolution*resolution;
+
+		// *****************【最大】 【最小】 【标准差】
+		for (auto i = 0; i < vecArea.size(); i++)
 		{
-			maxBigDia = vecMaxDia[i];
-			minBigDia = vecMaxDia[i];
-
-			maxSmallDia = vecMinDia[i];
-			minSmallDia = vecMinDia[i];
-
-			maxLength = vecLength[i];
-			minLength = vecLength[i];
-
-			maxArea = vecArea[i];
-			minArea = vecArea[i];
-		}
-		else
-		{
-			if (maxBigDia < vecMaxDia[i])
+			// 循环第一次初始化
+			if (i == 0)
+			{
 				maxBigDia = vecMaxDia[i];
-			if (minBigDia > vecMaxDia[i])
 				minBigDia = vecMaxDia[i];
 
-			if (maxSmallDia < vecMinDia[i])
 				maxSmallDia = vecMinDia[i];
-			if (minSmallDia > vecMinDia[i])
 				minSmallDia = vecMinDia[i];
 
-			if (maxLength < vecLength[i])
 				maxLength = vecLength[i];
-			if (minLength > vecLength[i])
 				minLength = vecLength[i];
 
-			if (maxArea < vecArea[i])
 				maxArea = vecArea[i];
-			if (minArea > vecArea[i])
 				minArea = vecArea[i];
+			}
+			else
+			{
+				if (maxBigDia < vecMaxDia[i])
+					maxBigDia = vecMaxDia[i];
+				if (minBigDia > vecMaxDia[i])
+					minBigDia = vecMaxDia[i];
 
+				if (maxSmallDia < vecMinDia[i])
+					maxSmallDia = vecMinDia[i];
+				if (minSmallDia > vecMinDia[i])
+					minSmallDia = vecMinDia[i];
+
+				if (maxLength < vecLength[i])
+					maxLength = vecLength[i];
+				if (minLength > vecLength[i])
+					minLength = vecLength[i];
+
+				if (maxArea < vecArea[i])
+					maxArea = vecArea[i];
+				if (minArea > vecArea[i])
+					minArea = vecArea[i];
+
+			}
+			// 标准差的计算
+			bigDiaSD += (vecMaxDia[i] - meanMaxDia)*(vecMaxDia[i] - meanMaxDia) / valueCount;
+			smallDiaSD += (vecMinDia[i] - meanMinDia)*(vecMinDia[i] - meanMinDia) / valueCount;
+			lengthSD += (vecLength[i] - meanLength)*(vecLength[i] - meanLength) / valueCount;
+			areaSD += (vecArea[i] - meanArea)*(vecArea[i] - meanArea) / valueCount;
 		}
-		// 标准差的计算
-		bigDiaSD += (vecMaxDia[i] - meanMaxDia)*(vecMaxDia[i] - meanMaxDia) / valueCount;
-		smallDiaSD += (vecMinDia[i] - meanMinDia)*(vecMinDia[i] - meanMinDia) / valueCount;
-		lengthSD += (vecLength[i] - meanLength)*(vecLength[i] - meanLength) / valueCount;
-		areaSD += (vecArea[i] - meanArea)*(vecArea[i] - meanArea) / valueCount;
-	}
 
-	bigDiaSD = sqrt(bigDiaSD);
-	smallDiaSD = sqrt(smallDiaSD);
-	lengthSD = sqrt(lengthSD);
-	areaSD = sqrt(areaSD);
+		bigDiaSD = sqrt(bigDiaSD);
+		smallDiaSD = sqrt(smallDiaSD);
+		lengthSD = sqrt(lengthSD);
+		areaSD = sqrt(areaSD);
+	}
 }
 
 
@@ -722,6 +727,7 @@ void Pictrue::WriteResultToExcelAccuracy()
 
 
 	// 值
+	start_range = sheet.get_Range(COleVariant(_T("A14")), covOptional);
 	write_range = start_range.get_Offset(COleVariant((long)irow + 1), COleVariant((long)1));
 	write_range.put_ColumnWidth(_variant_t((long)12));
 	write_range.put_HorizontalAlignment(val);
