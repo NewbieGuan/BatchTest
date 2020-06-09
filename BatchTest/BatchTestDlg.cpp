@@ -181,7 +181,14 @@ void CBatchTestDlg::OnBnClickedBt_SelectPics()
 
 	CFileDialog dlg(TRUE, _T("*.bmp"), NULL, OFN_ALLOWMULTISELECT | OFN_HIDEREADONLY | OFN_FILEMUSTEXIST, _T("Image Files(*.bmp;*.jpg;*.png;*.tif)|*.bmp;*.jpg;*.png;*.tif||"), NULL);
 	dlg.m_ofn.lpstrTitle = _T("选择图片");
-	CString filename;
+	// 为了实现多文件同时添加
+	DWORD max_file = 40000;             // 定义own filename buffer的大小
+	TCHAR * lsf = new TCHAR[max_file];
+	dlg.m_ofn.nMaxFile = max_file;
+	dlg.m_ofn.lpstrFile = lsf;
+	dlg.m_ofn.lpstrFile[0] = NULL;      // 初始化对话框
+
+	CString filename = _T("");
 	if (dlg.DoModal() == IDOK)
 	{
 		POSITION fileNamesPosition = dlg.GetStartPosition();
@@ -191,10 +198,13 @@ void CBatchTestDlg::OnBnClickedBt_SelectPics()
 			vecPicPaths.push_back(filename);
 		}
 	}
+	delete lsf;
 
 	size_t count = vecPicPaths.size();
 	if (count == 0)
 		MessageBox(_T("没有选择文件"), NULL, MB_OK | MB_ICONQUESTION);
+	else
+		sort(vecPicPaths.begin(), vecPicPaths.end());   //对路径名进行字典排序，使之有序
 }
 
 
