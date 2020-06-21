@@ -13,10 +13,11 @@ Pictrue::~Pictrue()
 
 
 //设置参数（从主类中传进参数）
-void Pictrue::SetParameter(double m_resolution, int m_diaThreshold, int m_grayThreshold, int m_perimeterThreshold,int m_radio, CString m_savePath, vector<CString> PicPaths)
+void Pictrue::SetParameter(double m_resolution, int m_diaThreshold_low, int m_diaThreshold_high, int m_grayThreshold, int m_perimeterThreshold, int m_radio, CString m_savePath, vector<CString> PicPaths)
 {
 	resolution = m_resolution;
-	diaThreshold = m_diaThreshold;
+	diaThreshold_low = m_diaThreshold_low;
+	diaThreshold_high = m_diaThreshold_high;
 	grayThreshold = m_grayThreshold;
 	perimeterThreshold = m_perimeterThreshold;
 	radio = m_radio;
@@ -103,79 +104,78 @@ void Pictrue::ComputeAccuracy(Mat srcImg)
 
 	// 遍历所有顶层轮廓
 	for (auto index = 0; index < contours.size(); index++)
-		{
-			area = contourArea(contours[index]);
-			length = arcLength(contours[index], true);
+	{
+		area = contourArea(contours[index]);
+		length = arcLength(contours[index], true);
 
-			// 最小外接矩形计算
-			RotatedRect rect = minAreaRect(contours[index]);
-			Point2f P[4];
-			rect.points(P);
-			Size s = rect.size;
-			l1 = s.width;
-			l2 = s.height;
-			if (l1 > l2)
+		// 最小外接矩形计算
+		RotatedRect rect = minAreaRect(contours[index]);
+		Point2f P[4];
+		rect.points(P);
+		Size s = rect.size;
+		l1 = s.width;
+		l2 = s.height;
+		if (l1 > l2)
+		{
+			bigL = l1 * resolution;
+			smallL = l2 * resolution;
+		}
+		else
+		{
+			bigL = l2 * resolution;
+			smallL = l1 * resolution;
+		}
+		minRadius = bigL;  // 得到最大粒径
+
+		//粒径在阈值范围才进行处理
+		if (minRadius >= diaThreshold_low && minRadius <= diaThreshold_high)
+		{
+			//int ratio_1 = bigL / smallL;
+			//int ratio_2 = (int)length * (int)length / (int)area;  //利用周长平方与面积之比来滤除条状纹理
+			if (length * resolution > perimeterThreshold)
 			{
-				bigL = l1 * resolution;
-				smallL = l2 * resolution;
+				cv::drawContours(dstImg2, contours, index, color_white, CV_FILLED, 8, hierarchy);
+				areaStrip -= area;
+			}
+			else if (bigL / smallL > radio)
+			{
+				cv::drawContours(dstImg2, contours, index, color_green, CV_FILLED, 8, hierarchy);
+				areaStrip -= area;
 			}
 			else
 			{
-				bigL = l2 * resolution;
-				smallL = l1 * resolution;
-			}
-			minRadius = smallL;  // 得到最小粒径
-
-			//粒径大于阈值才进行处理
-			//if (minRadius >= diaThreshold && length < 6000)
-			if (minRadius >= diaThreshold)
-			{
-				//int ratio_1 = bigL / smallL;
-				//int ratio_2 = (int)length * (int)length / (int)area;  //利用周长平方与面积之比来滤除条状纹理
-				if (length * resolution > perimeterThreshold)
+				double maxLength = 0.0;
+				double curLenth = 0.0;
+				// 每个颗粒内循环精确计算最大粒径
+				for (auto i = 0; i < contours[index].size(); i++)
 				{
-					cv::drawContours(dstImg2, contours, index, color_white, CV_FILLED, 8, hierarchy);
-					areaStrip -= area;
-				}
-				else if (bigL / smallL > radio)
-				{
-					cv::drawContours(dstImg2, contours, index, color_green, CV_FILLED, 8, hierarchy);
-					areaStrip -= area;
-				}
-				else
-				{
-					double maxLength = 0.0;
-					double curLenth = 0.0;
-					// 每个颗粒内循环精确计算最大粒径
-					for (auto i = 0; i < contours[index].size(); i++)
+					for (auto j = 0; j < contours[index].size(); j++)
 					{
-						for (auto j = 0; j < contours[index].size(); j++)
-						{
-							curLenth = sqrt((contours[index][i].x - contours[index][j].x)*(contours[index][i].x - contours[index][j].x) +
-								(contours[index][i].y - contours[index][j].y)*(contours[index][i].y - contours[index][j].y));
-							if (curLenth > maxLength)
-								maxLength = curLenth;
-						}
+						curLenth = sqrt((contours[index][i].x - contours[index][j].x)*(contours[index][i].x - contours[index][j].x) +
+							(contours[index][i].y - contours[index][j].y)*(contours[index][i].y - contours[index][j].y));
+						if (curLenth > maxLength)
+							maxLength = curLenth;
 					}
-					maxRadius = maxLength * resolution;// 得到最大粒径
-
-					valueCount++;
-					areaSum += area;
-					lengthSum += length;
-					radiusMaxSum += maxRadius;
-					radiusMinSum += minRadius;
-
-					area = area * resolution*resolution;
-					length = length * resolution;
-
-					vecArea.push_back(area);           // 面积
-					vecLength.push_back(length);       // 周长
-					vecMaxDia.push_back(maxRadius);    // 每个最大粒径
-					vecMinDia.push_back(minRadius);    // 每个最小粒径
-					cv::drawContours(dstImg2, contours, index, color_red, CV_FILLED, 8, hierarchy);
 				}
+				maxRadius = maxLength * resolution;// 得到最大粒径
+
+				valueCount++;
+				areaSum += area;
+				lengthSum += length;
+				radiusMaxSum += maxRadius;
+				radiusMinSum += minRadius;
+
+				area = area * resolution*resolution;
+				length = length * resolution;
+
+				vecArea.push_back(area);           // 面积
+				vecLength.push_back(length);       // 周长
+				vecMaxDia.push_back(maxRadius);    // 每个最大粒径
+				vecMinDia.push_back(minRadius);    // 每个最小粒径
+				cv::drawContours(dstImg2, contours, index, color_red, CV_FILLED, 8, hierarchy);
 			}
 		}
+	}
 
 
 	//画刻度线，1mm标小刻度，5mm标大刻度

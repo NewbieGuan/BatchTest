@@ -6,6 +6,7 @@
 #include "BatchTest.h"
 #include "BatchTestDlg.h"
 #include "afxdialogex.h"
+#include <fstream>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -52,7 +53,8 @@ END_MESSAGE_MAP()
 CBatchTestDlg::CBatchTestDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_BATCHTEST_DIALOG, pParent)
 	, m_resolution(5.378)
-	, m_diaThreshold(150)
+	, m_diaThreshold_low(150)
+	, m_diaThreshold_high(300)
 	, m_grayThreshold(20)
 	, m_savePath(_T(""))
 	, m_perimeterThreshold(50000)
@@ -65,8 +67,10 @@ void CBatchTestDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Text(pDX, EDIT_RESOLUTION, m_resolution);
-	DDX_Text(pDX, EDIT_DIATHRESHOLD, m_diaThreshold);
-	DDV_MinMaxInt(pDX, m_diaThreshold, 0, INT_MAX);
+	DDX_Text(pDX, EDIT_DIATHRESHOLD_L, m_diaThreshold_low);
+	DDX_Text(pDX, EDIT_DIATHRESHOLD_H, m_diaThreshold_high);
+	DDV_MinMaxInt(pDX, m_diaThreshold_low, 0, INT_MAX);
+	DDV_MinMaxInt(pDX, m_diaThreshold_high, 0, INT_MAX);
 	DDX_Text(pDX, EDIT_GRAYTHRESHOLD, m_grayThreshold);
 	DDX_Text(pDX, EDIT_SAVEPATH, m_savePath);
 	DDX_Control(pDX, IDC_PROGRESS1, m_progress);
@@ -78,7 +82,7 @@ BEGIN_MESSAGE_MAP(CBatchTestDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
-	ON_BN_CLICKED(BT_SELECT_PICS, &CBatchTestDlg::OnBnClickedBt_SelectPics)
+	ON_BN_CLICKED(BT_SELECT_PICS, &CBatchTestDlg::OnBnClickedSelectPics)
 	ON_BN_CLICKED(BT_SELECT_SAVEPATH, &CBatchTestDlg::OnBnClickedSelectSavepath)
 	ON_BN_CLICKED(BT_PROCESSING_PIC, &CBatchTestDlg::OnBnClickedProcessingPic)
 END_MESSAGE_MAP()
@@ -118,6 +122,15 @@ BOOL CBatchTestDlg::OnInitDialog()
 	// TODO: 在此添加额外的初始化代码
 
 	m_progress.SetRange32(0, 1000);   //进度条范围
+
+	bool is_password_correct = PasswordCheck();
+	if (!is_password_correct)
+	{
+		AfxMessageBox(_T("密码错误！"));
+		GetDlgItem(BT_SELECT_PICS)->EnableWindow(FALSE);//让选择图片文件按钮暂时不能点击
+		GetDlgItem(BT_SELECT_SAVEPATH)->EnableWindow(FALSE);//让选择保存路径按钮暂时不能点击
+		GetDlgItem(BT_PROCESSING_PIC)->EnableWindow(FALSE);//让处理图片按钮暂时不能点击
+	}
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -172,9 +185,60 @@ HCURSOR CBatchTestDlg::OnQueryDragIcon()
 }
 
 
+//校验密码文件是否正确
+bool CBatchTestDlg::PasswordCheck()
+{
+	// 1.读取password.ini文件中的密码
+	ifstream input;
+	string pw_file;
+	input.exceptions(std::ifstream::failbit | std::ifstream::badbit);// 这句代码的意思是可以保证输入流对象可以正常抛出异常
+	try {
+		input.open(".//password.ini");
+		getline(input, pw_file);
+		input.close();
+	}
+	catch (std::ifstream::failure error)
+	{
+		AfxMessageBox(_T("无法打开password.ini文件！"));
+		return false;
+	}
+
+	// 2.计算过了多少个半年
+	CTime t1(2020, 6, 1, 0, 0, 0); // 设定起始日期为 2020.6.1 00:00
+	CTime t2;
+	t2 = CTime::GetCurrentTime(); //获取当前时间
+	CTimeSpan ts = t2 - t1;     // Subtract 2 CTimes
+	int days = ts.GetDays();   //获得相差天数
+	if (days < 0) days = -days;
+	int key = days / (30 * 6);  //每半年密码改一次
+
+	// 3.生成正确的密码
+	string pw_correct;
+	char letters[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+		'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+		'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+		'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd',
+		'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+		'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
+		'y', 'z' };
+	unsigned length = sizeof(letters) / sizeof(letters[0]);
+	unsigned k = key + 10;
+	for (int i = 0; i < 8; ++i)
+	{
+		k = k * 3 % 1024;
+		pw_correct.push_back(letters[(k%length)]);
+	}
+
+	// 4.判断password.ini文件中的密码是否正确
+	if (pw_file == pw_correct)
+		return true;
+	else
+		return false;
+}
+
 
 //按下“选择图片文件”按钮
-void CBatchTestDlg::OnBnClickedBt_SelectPics()
+void CBatchTestDlg::OnBnClickedSelectPics()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	vecPicPaths.clear();
@@ -222,15 +286,17 @@ void CBatchTestDlg::OnBnClickedSelectSavepath()
 void CBatchTestDlg::OnBnClickedProcessingPic()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	GetDlgItem(BT_PROCESSING_PIC)->EnableWindow(FALSE);//让处理图片按钮暂时不能点击
 	UpdateData(TRUE);
 	if (vecPicPaths.empty())  //如果图片路径为空
 		AfxMessageBox(_T("请选择图片！"));
-	else if(!PathFileExists(m_savePath))  //如果结果保存路径为空
+	else if (!PathFileExists(m_savePath))  //如果结果保存路径为空
 		AfxMessageBox(_T("请选择处理结果保存路径！"));
+	else if (m_diaThreshold_low > m_diaThreshold_high)
+		AfxMessageBox(_T("粒径筛选范围有误！"));
 	else
 	{
-		pic.SetParameter(m_resolution, m_diaThreshold, m_grayThreshold, m_perimeterThreshold, m_radio,m_savePath, vecPicPaths);  //传递参数
+		GetDlgItem(BT_PROCESSING_PIC)->EnableWindow(FALSE);//让处理图片按钮暂时不能点击
+		pic.SetParameter(m_resolution, m_diaThreshold_low, m_diaThreshold_high, m_grayThreshold, m_perimeterThreshold, m_radio,m_savePath, vecPicPaths);  //传递参数
 		//AfxBeginThread(ProgressPic, NULL);  //开辟线程
 		//CreateThread(0, 0, ProgressPic, &pic, 0, 0);   //开辟线程
 		unsigned int threadID;

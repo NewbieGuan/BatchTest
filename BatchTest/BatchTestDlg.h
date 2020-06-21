@@ -34,7 +34,8 @@ protected:
 
 public:
 	double m_resolution;     // 分辨率
-	int m_diaThreshold;     // 粒径阈值
+	int m_diaThreshold_low;     // 低粒径阈值
+	int m_diaThreshold_high;     // 高粒径阈值
 	int m_grayThreshold;     // 灰度阈值（减数）
 	int m_perimeterThreshold;   //周长阈值
 	int m_radio;       //最小外接矩形长宽比
@@ -45,12 +46,13 @@ public:
 
 	HANDLE  handle;
 
-	afx_msg void OnBnClickedBt_SelectPics();   //按下“选择图片文件”按钮
+	afx_msg void OnBnClickedSelectPics();   //按下“选择图片文件”按钮
 	afx_msg void OnBnClickedSelectSavepath();   //按下“选择保存路径”按钮
 	afx_msg void OnBnClickedProcessingPic();   //按下“处理图片”按钮
 	CString ShowDialog();   //显示选择保存路径对话框
 	void SetProgressBar(int num, int num_all);   //设置进度条
 	void SetProgressRate(int num, int num_all);   //设置进度数
+	bool PasswordCheck();  //校验密码文件是否正确
 
 	static UINT ProgressPic(LPVOID pParam);
 };

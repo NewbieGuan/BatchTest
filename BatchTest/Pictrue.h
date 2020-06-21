@@ -56,7 +56,8 @@ public:
 
 	vector<CString> vecPicPaths;    //所选图片路径容器
 	double resolution;     // 分辨率
-	int diaThreshold;     // 粒径阈值
+	int diaThreshold_low;     // 低粒径阈值
+	int diaThreshold_high;     // 高粒径阈值
 	int grayThreshold;     // 灰度阈值（减数）
 	int perimeterThreshold;   //周长阈值
 	int radio;              //最小外接矩形长宽比
@@ -75,7 +76,7 @@ public:
 	VARIANT val;
 
 	int m_perimeterThreshold;   //周长阈值
-	void SetParameter(double m_resolution, int m_diaThreshold, int m_grayThreshold, int m_perimeterThreshold,int m_radio, CString m_savePath, vector<CString> vecPicPaths);   //设置参数（从主类中传进参数）
+	void SetParameter(double m_resolution, int m_diaThreshold_low, int m_diaThreshold_high, int m_grayThreshold, int m_perimeterThreshold,int m_radio, CString m_savePath, vector<CString> vecPicPaths);   //设置参数（从主类中传进参数）
 	void Initialize();   //参数初始化
 	void ComputeAccuracy(Mat srcImg);     // 保存结果图并精确计算出各项参数
 	int OtsuAlgThreshold(Mat image);     // 计算Otsu阈值
