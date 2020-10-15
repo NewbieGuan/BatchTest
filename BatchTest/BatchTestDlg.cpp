@@ -52,13 +52,13 @@ END_MESSAGE_MAP()
 
 CBatchTestDlg::CBatchTestDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_BATCHTEST_DIALOG, pParent)
-	, m_resolution(5.378)
-	, m_diaThreshold_low(150)
-	, m_diaThreshold_high(300)
-	, m_grayThreshold(20)
+	//, m_resolution(5.378)
+	//, m_diaThreshold_low(150)
+	//, m_diaThreshold_high(300)
+	//, m_grayThreshold(20)
+	//, m_perimeterThreshold(50000)
+	//, m_radio(6)
 	, m_savePath(_T(""))
-	, m_perimeterThreshold(50000)
-	, m_radio(6)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -74,8 +74,8 @@ void CBatchTestDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, EDIT_GRAYTHRESHOLD, m_grayThreshold);
 	DDX_Text(pDX, EDIT_SAVEPATH, m_savePath);
 	DDX_Control(pDX, IDC_PROGRESS1, m_progress);
-	DDX_Text(pDX, IDC_EDIT1, m_perimeterThreshold);
-	DDX_Text(pDX, IDC_EDIT2, m_radio);
+	DDX_Text(pDX, IDC_PERIMETERTHRESHOLD, m_perimeterThreshold);
+	DDX_Text(pDX, IDC_RADIO, m_radio);
 }
 
 BEGIN_MESSAGE_MAP(CBatchTestDlg, CDialogEx)
@@ -131,6 +131,8 @@ BOOL CBatchTestDlg::OnInitDialog()
 		GetDlgItem(BT_SELECT_SAVEPATH)->EnableWindow(FALSE);//让选择保存路径按钮暂时不能点击
 		GetDlgItem(BT_PROCESSING_PIC)->EnableWindow(FALSE);//让处理图片按钮暂时不能点击
 	}
+
+	GetIniPara();
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -276,9 +278,9 @@ void CBatchTestDlg::OnBnClickedSelectPics()
 void CBatchTestDlg::OnBnClickedSelectSavepath()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	UpdateData(TRUE);
+	UpdateData(TRUE);//把控件的内容更新到变量
 	m_savePath = ShowDialog();
-	UpdateData(FALSE);
+	UpdateData(FALSE);//把变量的内容更新到控件
 }
 
 
@@ -287,6 +289,7 @@ void CBatchTestDlg::OnBnClickedProcessingPic()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(TRUE);
+	SaveIniPara();
 	if (vecPicPaths.empty())  //如果图片路径为空
 		AfxMessageBox(_T("请选择图片！"));
 	else if (!PathFileExists(m_savePath))  //如果结果保存路径为空
@@ -384,4 +387,98 @@ void CBatchTestDlg::SetProgressRate(int num, int num_all)
 	CString str;
 	str.Format(_T("%d/%d"), num, num_all);
 	SetDlgItemText(STATIC_RATE, str);
+}
+
+
+//获取配置文件参数更新到界面
+void CBatchTestDlg::GetIniPara() {
+	CString inipath = GetIniPath();
+
+	// 分辨率
+	CString str_resolution;
+	::GetPrivateProfileString(_T("SaveInfo"), _T("分辨率"), _T("5.378"), str_resolution.GetBuffer(MAX_PATH), MAX_PATH, inipath);
+	GetDlgItem(EDIT_RESOLUTION)->SetWindowText(str_resolution);
+	m_resolution = _tstof(str_resolution);
+
+	// 低粒径阈值
+	CString str_diaThreshold_low;
+	m_diaThreshold_low = GetPrivateProfileInt(_T("SaveInfo"), _T("低粒径阈值"), 50, inipath);
+	str_diaThreshold_low.Format(_T("%d"), m_diaThreshold_low);
+	GetDlgItem(EDIT_DIATHRESHOLD_L)->SetWindowText(str_diaThreshold_low);
+
+	// 高粒径阈值
+	CString str_diaThreshold_high;
+	m_diaThreshold_high = GetPrivateProfileInt(_T("SaveInfo"), _T("高粒径阈值"), 1000, inipath);
+	str_diaThreshold_high.Format(_T("%d"), m_diaThreshold_high);
+	GetDlgItem(EDIT_DIATHRESHOLD_H)->SetWindowText(str_diaThreshold_high);
+
+	// 灰度阈值（减数）
+	CString str_grayThreshold;
+	m_grayThreshold = GetPrivateProfileInt(_T("SaveInfo"), _T("灰度阈值"), 20, inipath);
+	str_grayThreshold.Format(_T("%d"), m_grayThreshold);
+	GetDlgItem(EDIT_GRAYTHRESHOLD)->SetWindowText(str_grayThreshold);
+
+	// 周长阈值
+	CString str_perimeterThreshold;
+	m_perimeterThreshold = GetPrivateProfileInt(_T("SaveInfo"), _T("周长阈值"), 50000, inipath);
+	str_perimeterThreshold.Format(_T("%d"), m_perimeterThreshold);
+	GetDlgItem(IDC_PERIMETERTHRESHOLD)->SetWindowText(str_perimeterThreshold);
+
+	// 最小外接矩形长宽比
+	CString str_radio;
+	m_radio = GetPrivateProfileInt(_T("SaveInfo"), _T("最小外接矩形长宽比"), 6, inipath);
+	str_radio.Format(_T("%d"), m_radio);
+	GetDlgItem(IDC_RADIO)->SetWindowText(str_radio);
+}
+
+
+//界面的参数保存到配置文件
+void CBatchTestDlg::SaveIniPara() {
+	CString inipath = GetIniPath();
+
+	// 分辨率
+	CString str_resolution;
+	GetDlgItem(EDIT_RESOLUTION)->GetWindowText(str_resolution);
+	::WritePrivateProfileString(_T("SaveInfo"), _T("分辨率"), str_resolution, inipath);
+
+	// 低粒径阈值
+	CString str_diaThreshold_low;
+	GetDlgItem(EDIT_DIATHRESHOLD_L)->GetWindowText(str_diaThreshold_low);
+	::WritePrivateProfileString(_T("SaveInfo"), _T("低粒径阈值"), str_diaThreshold_low, inipath);
+
+	// 高粒径阈值
+	CString str_diaThreshold_high;
+	GetDlgItem(EDIT_DIATHRESHOLD_H)->GetWindowText(str_diaThreshold_high);
+	::WritePrivateProfileString(_T("SaveInfo"), _T("高粒径阈值"), str_diaThreshold_high, inipath);
+
+	// 灰度阈值（减数）
+	CString str_grayThreshold;
+	GetDlgItem(EDIT_GRAYTHRESHOLD)->GetWindowText(str_grayThreshold);
+	::WritePrivateProfileString(_T("SaveInfo"), _T("灰度阈值"), str_grayThreshold, inipath);
+
+	// 周长阈值
+	CString str_perimeterThreshold;
+	GetDlgItem(IDC_PERIMETERTHRESHOLD)->GetWindowText(str_perimeterThreshold);
+	::WritePrivateProfileString(_T("SaveInfo"), _T("周长阈值"), str_perimeterThreshold, inipath);
+
+	// 最小外接矩形长宽比
+	CString str_radio;
+	GetDlgItem(IDC_RADIO)->GetWindowText(str_radio);
+	::WritePrivateProfileString(_T("SaveInfo"), _T("最小外接矩形长宽比"), str_radio, inipath);
+}
+
+
+//获得配置文件路径
+CString CBatchTestDlg::GetIniPath() {
+	CString exepath; //包含目录的路径
+	::GetModuleFileName(NULL, exepath.GetBufferSetLength(MAX_PATH + 1), MAX_PATH);
+	int nexe = exepath.GetLength();
+	int i = nexe - 1;
+	for (; i >= 0; i--)
+	{
+		if (exepath[i] == '\\')
+			break;
+	}
+	CString inipath = exepath.Left(i + 1) + "para.ini"; 
+	return inipath;
 }

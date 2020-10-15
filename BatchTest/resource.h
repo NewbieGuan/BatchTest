@@ -22,7 +22,9 @@
 #define IDC_PROGRESS1                   1011
 #define STATIC_RATE                     1012
 #define IDC_EDIT1                       1013
+#define IDC_PERIMETERTHRESHOLD          1013
 #define IDC_EDIT2                       1014
+#define IDC_RADIO                       1014
 #define IDC_EDIT3                       1015
 #define EDIT_DIATHRESHOLD_H             1015
 

@@ -53,6 +53,9 @@ public:
 	void SetProgressBar(int num, int num_all);   //设置进度条
 	void SetProgressRate(int num, int num_all);   //设置进度数
 	bool PasswordCheck();  //校验密码文件是否正确
+	void GetIniPara();   //获取配置文件参数更新到界面
+	void SaveIniPara();   //界面的参数保存到配置文件
+	CString GetIniPath();   //获得配置文件路径
 
 	static UINT ProgressPic(LPVOID pParam);
 };
