@@ -4,6 +4,7 @@
 
 #pragma once
 #include "Pictrue.h"
+#include "CPassword.h"
 
 // CBatchTestDlg 对话框
 class CBatchTestDlg : public CDialogEx
@@ -42,6 +43,7 @@ public:
 	CString m_savePath;     //保存路径
 	CProgressCtrl m_progress;   //进度条
 	vector<CString> vecPicPaths;    //所选图片路径容器
+	CPassword dlgPassword;
 	Pictrue pic;
 
 	HANDLE  handle;
@@ -52,7 +54,7 @@ public:
 	CString ShowDialog();   //显示选择保存路径对话框
 	void SetProgressBar(int num, int num_all);   //设置进度条
 	void SetProgressRate(int num, int num_all);   //设置进度数
-	bool PasswordCheck();  //校验密码文件是否正确
+	void PasswordCheck();   //密码处理
 	void GetIniPara();   //获取配置文件参数更新到界面
 	void SaveIniPara();   //界面的参数保存到配置文件
 	CString GetIniPath();   //获得配置文件路径

@@ -157,7 +157,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -186,6 +186,7 @@
     <ClInclude Include="BatchTestDlg.h" />
     <ClInclude Include="CApplication.h" />
     <ClInclude Include="CFont0.h" />
+    <ClInclude Include="CPassword.h" />
     <ClInclude Include="CRange.h" />
     <ClInclude Include="CWorkbook.h" />
     <ClInclude Include="CWorkbooks.h" />
@@ -199,6 +200,7 @@
   <ItemGroup>
     <ClCompile Include="BatchTest.cpp" />
     <ClCompile Include="BatchTestDlg.cpp" />
+    <ClCompile Include="CPassword.cpp" />
     <ClCompile Include="Pictrue.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
