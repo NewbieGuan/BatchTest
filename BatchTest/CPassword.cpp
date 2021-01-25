@@ -40,13 +40,22 @@ END_MESSAGE_MAP()
 // 计算正确的密码
 string CPassword::GetCorrectPassword() {
 	// 1.计算过了多少个半年
-	CTime t1(2020, 6, 1, 0, 0, 0); // 设定起始日期为 2020.6.1 00:00
+	//CTime t1(2020, 6, 1, 0, 0, 0); // 设定起始日期为 2020.6.1 00:00
+	//CTime t2;
+	//t2 = CTime::GetCurrentTime(); //获取当前时间
+	//CTimeSpan ts = t2 - t1;     // Subtract 2 CTimes
+	//int days = ts.GetDays();   //获得相差天数
+	//if (days < 0) days = -days;
+	//int key = days / (30 * 6);  //每半年密码改一次
+
+	// 1.计算过了多长时间
+	CTime t1(2021, 1, 25, 0, 0, 0); // 设定起始日期为 2021.1.25 00:00
 	CTime t2;
 	t2 = CTime::GetCurrentTime(); //获取当前时间
 	CTimeSpan ts = t2 - t1;     // Subtract 2 CTimes
 	int days = ts.GetDays();   //获得相差天数
 	if (days < 0) days = -days;
-	int key = days / (30 * 6);  //每半年密码改一次
+	int key = days / (30 * 3);  //每三个月密码改一次
 
 	// 2.生成正确的密码
 	string pw_correct;
